@@ -320,7 +320,12 @@ function set_password() {
   local __db_pwd=$3
   local __db=$4
   local __path=$5
-  local __host=$6
+  local __host=localhost
+
+  if [[ -n $6 ]]
+    then
+      __host="$6"
+  fi
 
   HASH=$(hhvm -f "$__path/extra/hash.php" "$__admin_pwd")
 
