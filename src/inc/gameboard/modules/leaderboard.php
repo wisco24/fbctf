@@ -11,25 +11,36 @@ class LeaderboardModuleController {
     await tr_start();
     $leaderboard_ul = <ul></ul>;
 
-    $my_team = await Team::genTeam(SessionUtils::sessionTeam());
+    $my_team = await MultiTeam::genTeam(SessionUtils::sessionTeam());
     $my_rank = await Team::genMyRank(SessionUtils::sessionTeam());
 
     // If refresing is enabled, do the needful
     $gameboard = await Configuration::gen('gameboard');
     if ($gameboard->getValue() === '1') {
-      $leaders = await Team::genLeaderboard();
+      $leaders = await MultiTeam::genLeaderboard();
       $rank = 1;
       $l_max = (count($leaders) > 5) ? 5 : count($leaders);
       for ($i = 0; $i < $l_max; $i++) {
         $team = $leaders[$i];
+
+        // TODO also duplicated in modules/teams.php. Needs to be un-duplicated.
+        $logo_model = await $team->getLogoModel();
+        if ($logo_model->getCustom()) {
+          $image =
+            <img class="icon--badge" src={$logo_model->getLogo()}></img>;
+        } else {
+          $iconbadge = '#icon--badge-'.$logo_model->getName();
+          $image =
+            <svg class="icon--badge">
+              <use href={$iconbadge} />
+            </svg>;
+        }
+
         $xlink_href = '#icon--badge-'.$team->getLogo();
         $leaderboard_ul->appendChild(
           <li class="fb-user-card">
             <div class="user-avatar">
-              <svg class="icon--badge">
-                <use href={$xlink_href} />
-
-              </svg>
+              {$image}
             </div>
             <div class="player-info">
               <h6>{$team->getName()}</h6>

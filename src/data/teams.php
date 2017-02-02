@@ -9,7 +9,7 @@ SessionUtils::enforceLogin();
 class TeamDataController extends DataController {
   public async function genGenerateData(): Awaitable<void> {
     $rank = 1;
-    $leaderboard = await Team::genLeaderboard();
+    $leaderboard = await MultiTeam::genLeaderboard();
     $teams_data = (object) array();
 
     // If refresing is disabled, exit
@@ -20,12 +20,18 @@ class TeamDataController extends DataController {
     }
 
     foreach ($leaderboard as $team) {
-      $base = await Team::genPointsByType($team->getId(), 'base');
-      $quiz = await Team::genPointsByType($team->getId(), 'quiz');
-      $flag = await Team::genPointsByType($team->getId(), 'flag');
+      $base = await MultiTeam::genPointsByType($team->getId(), 'base');
+      $quiz = await MultiTeam::genPointsByType($team->getId(), 'quiz');
+      $flag = await MultiTeam::genPointsByType($team->getId(), 'flag');
+
+      $logo_model = await $team->getLogoModel();
 
       $team_data = (object) array(
-        'badge' => $team->getLogo(),
+        'logo' => array(
+          'path' => $logo_model->getLogo(),
+          'name' => $logo_model->getName(),
+          'custom' => $logo_model->getCustom(),
+        ),
         'team_members' => array(),
         'rank' => $rank,
         'points' => array(

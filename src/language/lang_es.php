@@ -24,7 +24,7 @@ $translations = array(
   'Login' =>
     'Inciar Sesión',
   'Soon' =>
-    'Pronto',
+    'Próximamente',
   'Upcoming Game' =>
     'Próximo Juego',
   '_days' =>
@@ -44,7 +44,7 @@ $translations = array(
   'Cooperation' =>
     'Cooperación',
   'No cooperation between teams with independent accounts. Sharing of keys or providing revealing hints to other teams is cheating, don’t do it.' =>
-    'Equipos con cuentas independientes no pueden cooperar entre sí. Compartir claves o pistas con otros equipos es hacer trampa, no lo hagas.',
+    'Los equipos con cuentas independientes no pueden cooperar entre sí. Compartir claves o pistas con otros equipos es hacer trampa, no lo hagas.',
   'Attacking Scoreboard' =>
     'Puntuaciones de Ataque',
   'No attacking the competition infrastructure. If bugs or vulns are found, please alert the competition organizers immediately.' =>
@@ -60,7 +60,7 @@ $translations = array(
   'Denial Of Service' =>
     'Denegación De Servicio',
   'DoSing the CTF platform or any of the challenges is forbidden.' =>
-    'Queda prohibido hacer denegación de servicio a la plataform de CTF.',
+    'Queda prohibido hacer ataques de denegación de servicio a la plataform de CTF.',
   'Legal' =>
     'Legal',
   'Disclaimer' =>
@@ -202,7 +202,7 @@ $translations = array(
   'Registration Type' =>
     'Tipo de Registro',
   'Strong Passwords' =>
-    'Passwords Seguros',
+    'Contraseñas Seguras',
   'Team Selection' =>
     'Selección de Equipo',
   'Game' =>
@@ -296,9 +296,9 @@ $translations = array(
   'Save' =>
     'Guardar',
   'Quiz Management' =>
-    'Administrar Acertijos',
+    'Administración de Acertijos',
   'Add Quiz Level' =>
-    'Añadir Nivel Acertijo',
+    'Añadir nuevo nivel de Acertijo',
   'New Flag Level' =>
     'Nuevo Nivel Bandera',
   'Description' =>
@@ -437,6 +437,8 @@ $translations = array(
     'Tiempo de Creación',
   'Last Access' =>
     'Último Acceso',
+  'Last Page Access' =>
+    'Última Página de Acceso',
   'Data' =>
     'Datos',
   'Sessions' =>
@@ -640,4 +642,12 @@ $translations = array(
     'Continuar para jugar',
   'Powered By Facebook' =>
     'Powered By Facebook',
+  'Active Directory / LDAP' =>
+    'Active Directory / LDAP',
+  'LDAP Server' =>
+    'LDAP Server',
+  'LDAP Port' =>
+    'LDAP Port',
+  'LDAP Domain' =>
+    'LDAP Domain',
 );

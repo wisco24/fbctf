@@ -8,7 +8,7 @@ The Facebook CTF is a platform to host Jeopardy and “King of the Hill” style
 
 ## How do I use FBCTF?
 
-* Organize a competition. This can be with as few as two participants, all the way up to several hundred. The participants can be physically present, active online, or a combination of the two.
+* Organize a competition. This can be done with as few as two participants, all the way up to several hundred. The participants can be physically present, active online, or a combination of the two.
 * Follow setup instructions below to spin up platform infrastructure.
 * Enter challenges into admin page
 * Have participants register as teams
@@ -74,27 +74,27 @@ cd fbctf
 *Note*: Because this is a production environment, the password will be randomly generated when the provision script finishes. This ensures that you can't forget to change the default password after provisioning. Make sure to watch the very end of the provision script, as the password will be printed out. It will not be stored elsewhere, so either keep track of it or change it. In order to change the password, run the following command:
 
 ```
-. ./extra/lib.sh
+source ./extra/lib.sh
 set_password new_password ctf ctf fbctf $PWD
 ```
 
 This will set the password to 'new_password', assuming the database user/password is ctf/ctf and the database name is fbctf (these are the defaults).
 
-By default, the provision script will place the code in the `/var/www/fbctf` directory, install all dependencies, and start the server. In order to run in production mode, we require that you use SSL. You can choose between generating new self-signed, using your own or generate valid SSL certificates using [Let's Encrypt](https://letsencrypt.org/). The provision script uses [certbot](https://certbot.eff.org/) to assist with the generation of valid SSL certificates.
+By default, the provision script will place the code in the `/var/www/fbctf` directory, install all dependencies, and start the server. In order to run in production mode, we require that you use SSL. You can choose between generating new self-signed, using your own or generate valid SSL certificates using [Let's Encrypt](https://letsencrypt.org/). The provisioning script uses [certbot](https://certbot.eff.org/) to assist with the generation of valid SSL certificates.
 
 #### Production Certificates
 
 As mentioned above, there are three different type of certificates that the provision script will use:
 
 1. 	Self-signed certificate (```-c self```):
-	It is the same type of certificate than the development mode provisioning. Both the CRT and the key files will be generated and the command could be:
+	It is the same type of certificate that the development mode provisioning. Both the CRT and the key files will be generated and the command could be:
 
 	```
 	./extra/provision.sh -m prod -c self -s $PWD
 	``` 
 
 2. 	Use of own certificate (```-c own```):
-	If we already have a valid SSL certificate for our domain and want to use it. If the path for bith CRT and key files is not provided, it will be prompted. Example command:
+	If we already have a valid SSL certificate for our domain and want to use it. If the path for both CRT and key files is not provided, it will be prompted. Example command:
 
 	```
 	./extra/provision.sh -m prod -c own -k /path/to/my.key -C /path/to/cert.crt -s $PWD
@@ -120,6 +120,17 @@ If you are going to be modifying files outside of the Vagrant VM, you will need 
 Note that the unison script will not sync NPM dependencies, so if you ever need to run `npm install`, you should always run it on the VM itself.
 
 This step is not necessary if all development is done on the VM.
+
+
+#### Keep code updated
+
+If you are already running the fbctf platform and want to keep the code updated, there is an easy way to do that with the provision script.
+For example, the following command will run in a production environment and it will pull master from Github and get it ready to run, from the folder ```/var/www/fbctf```:
+
+```
+./extra/provision.sh -m prod -U -s $PWD -d /var/www/fbctf
+```
+
 
 # Using Docker
 
@@ -148,7 +159,7 @@ Run command:
 
 `docker run -p 80:80 -p 443:443 -v /etc/letsencrypt:/etc/letsencrypt fbctf_in_prod`
 
-*Note 1: Because this is a production environment, the password will be randomly generated when the provision script finishes. Make sure to watch the very end of the provision script while image is building, as the password will be printed out. It will not be stored elsewhere, so either keep track of it or change it. In order to change the password, run the following command in container:*
+*Note 1: Because this is a production environment, the password will be randomly generated when the provision script finishes. Make sure to watch the very end of the provision script while the image is building, as the password will be printed out. It will not be stored elsewhere, so either keep track of it or change it. In order to change the password, run the following command in container:*
 
 ```
 set_password new_password ctf ctf fbctf /root
@@ -171,8 +182,6 @@ If you have issues installing the platform, please provide the entire output of 
 You’ve used it, now you want to make it better? Awesome! Pull requests are welcome! Click [here] (https://github.com/facebook/fbctf/blob/master/CONTRIBUTING.md) to find out how to contribute.
 
 Facebook also has [bug bounty program] (https://www.facebook.com/whitehat/) that includes FBCTF. If you find a security vulnerability in the platform, please submit it via the process outlined on that page and do not file a public issue.
-
-We're also hiring a dedicated engineering lead for FBCTF! If you're interested in the remote position, apply [here](http://pro.applytojob.com/apply/Qe1YmW/CTF-Engineering-Lead)!
 
 ## Have more questions?
 

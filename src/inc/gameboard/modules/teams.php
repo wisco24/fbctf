@@ -9,7 +9,7 @@ SessionUtils::enforceLogin();
 class TeamModuleController {
   public async function genRender(): Awaitable<:xhp> {
     await tr_start();
-    $leaderboard = await Team::genLeaderboard();
+    $leaderboard = await MultiTeam::genLeaderboard();
     $rank = 1;
 
     $list = <ul class="grid-list"></ul>;
@@ -17,14 +17,21 @@ class TeamModuleController {
     $gameboard = await Configuration::gen('gameboard');
     if ($gameboard->getValue() === '1') {
       foreach ($leaderboard as $leader) {
-        $iconbadge = '#icon--badge-'.$leader->getLogo();
+        $logo_model = await $leader->getLogoModel();
+        if ($logo_model->getCustom()) {
+          $image =
+            <img class="icon--badge" src={$logo_model->getLogo()}></img>;
+        } else {
+          $iconbadge = '#icon--badge-'.$logo_model->getName();
+          $image =
+            <svg class="icon--badge">
+              <use href={$iconbadge} />
+            </svg>;
+        }
         $list->appendChild(
           <li>
             <a href="#" data-team={$leader->getName()}>
-              <svg class="icon--badge">
-                <use href={$iconbadge} />
-
-              </svg>
+              {$image}
             </a>
           </li>
         );

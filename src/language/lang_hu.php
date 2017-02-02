@@ -437,6 +437,8 @@ $translations = array(
     'Létrehozás ideje',
   'Last Access' =>
     'Legutóbbi aktivitás',
+  'Last Page Access' =>
+    'Utolsó oldal Access',
   'Data' =>
     'Adat',
   'Sessions' =>
@@ -640,4 +642,12 @@ $translations = array(
     'Vissza a játékhoz',
   'Powered By Facebook' =>
     'Powered By Facebook',
+  'Active Directory / LDAP' =>
+    'Active Directory / LDAP',
+  'LDAP Server' =>
+    'LDAP Server',
+  'LDAP Port' =>
+    'LDAP Port',
+  'LDAP Domain' =>
+    'LDAP Domain',
 );

@@ -437,6 +437,8 @@ $translations = array(
     'Sorkuntza Time',
   'Last Access' =>
     'Azken Access',
+  'Last Page Access' =>
+    'Azken Page Access',
   'Data' =>
     'Datuak',
   'Sessions' =>
@@ -640,4 +642,12 @@ $translations = array(
     'Skip to play',
   'Powered By Facebook' =>
     'Nork Facebook By',
+  'Active Directory / LDAP' =>
+    'Active Directory / LDAP',
+  'LDAP Server' =>
+    'LDAP Server',
+  'LDAP Port' =>
+    'LDAP Port',
+  'LDAP Domain' =>
+    'LDAP Domain',
 );

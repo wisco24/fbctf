@@ -21,6 +21,31 @@ function endGame() {
   sendAdminRequest(end_data, true);
 }
 
+// Pauses the currently running game
+function pauseGame() {
+  var pause_data = {
+    action: 'pause_game'
+  };
+  sendAdminRequest(pause_data, true);
+}
+
+// Unpauses the currently running game
+function unpauseGame() {
+  var unpause_data = {
+    action: 'unpause_game'
+  };
+  sendAdminRequest(unpause_data, true);
+}
+
+//Confirm team deletion
+function deleteTeamPopup(team_id) {
+  var delete_team = {
+    action: 'delete_team',
+    team_id: team_id
+  };
+  sendAdminRequest(delete_team, true);
+}
+
 /**
  * submits an ajax request to the admin endpoint
  *
@@ -879,7 +904,11 @@ function changeConfiguration(field, value) {
     field: field,
     value: value
   };
-  sendAdminRequest(conf_data, false);
+  if (field === 'registration_type' || field === 'language') {
+    sendAdminRequest(conf_data, true);
+  }else {
+    sendAdminRequest(conf_data, false);
+  }
 }
 
 function toggleLogo(section) {
@@ -1096,20 +1125,17 @@ module.exports = {
     });
 
     // configuration fields
-    $('select,input[type="number"][name^="fb--conf"]').on('change', function() {
+    $('select,input[type="number"][name^="fb--conf"],input[type="text"][name^="fb--conf"]').on('change', function() {
       var $this = $(this);
       var field = $this.attr('name').split('--')[2];
       var value = '';
-      if ($this.attr('type') === 'number') {
+      if ($this.attr('type') === 'number' || $this.attr('type') === 'text') {
         value = $(this)[0].value;
       } else {
         value = $('option:selected', $this)[0].value;
       }
       if (!$(this).hasClass('not_configuration')) {
         changeConfiguration(field, value);
-        if (field === 'registration_type') {
-          location.reload();
-        }
       }
     });
 
@@ -1266,6 +1292,33 @@ module.exports = {
       event.preventDefault();
       Modal.loadPopup('p=action&modal=end-game', 'action-end-game', function() {
         $('#end_game').click(endGame);
+      });
+    });
+
+    // prompt pause game
+    $('.js-pause-game').on('click', function(event) {
+      event.preventDefault();
+      Modal.loadPopup('p=action&modal=pause-game', 'action-pause-game', function() {
+        $('#pause_game').click(pauseGame);
+      });
+    });
+
+    // prompt pause game
+    $('.js-unpause-game').on('click', function(event) {
+      event.preventDefault();
+      Modal.loadPopup('p=action&modal=unpause-game', 'action-unpause-game', function() {
+        $('#unpause_game').click(unpauseGame);
+      });
+    });
+
+    // prompt delete team
+    $('.js-delete-team').on('click', function(event) {
+      event.preventDefault();
+      var team_id = $(this).prev('input').attr('value');
+      Modal.loadPopup('p=action&modal=delete-team', 'action-delete-team', function() {
+        $('#delete_team').click(function() {
+          deleteTeamPopup(team_id);
+        });
       });
     });
 

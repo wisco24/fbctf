@@ -162,13 +162,32 @@ class AdminController extends Controller {
     return
       <div class="fb-column-container">
         <div class="col col-1-2">
-          <input type="number" value={$duration_value} name="fb--conf--game_duration_value" />
+          <input
+            type="number"
+            value={$duration_value}
+            name="fb--conf--game_duration_value"
+          />
         </div>
         <div class="col col-2-2">
           <select name="fb--conf--game_duration_unit">
-            <option class="fb--conf--game_duration" value="m" selected={$minute_selected}>Minutes</option>
-            <option class="fb--conf--game_duration" value="h" selected={$hour_selected}>Hours</option>
-            <option class="fb--conf--game_duration" value="d" selected={$day_selected}>Days</option>
+            <option
+              class="fb--conf--game_duration"
+              value="m"
+              selected={$minute_selected}>
+              Minutes
+            </option>
+            <option
+              class="fb--conf--game_duration"
+              value="h"
+              selected={$hour_selected}>
+              Hours
+            </option>
+            <option
+              class="fb--conf--game_duration"
+              value="d"
+              selected={$day_selected}>
+              Days
+            </option>
           </select>
         </div>
       </div>;
@@ -205,7 +224,7 @@ class AdminController extends Controller {
     $tokens = await Token::genAllTokens();
     foreach ($tokens as $token) {
       if ($token->getUsed()) {
-        $team = await Team::genTeam($token->getTeamId());
+        $team = await MultiTeam::genTeam($token->getTeamId());
         $token_status =
           <span class="highlighted--red">
             {tr('Used by')} {$team->getName()}
@@ -252,22 +271,49 @@ class AdminController extends Controller {
   }
 
   public async function genRenderConfigurationContent(): Awaitable<:xhp> {
-    $registration = await Configuration::gen('registration');
-    $registration_players = await Configuration::gen('registration_players');
-    $login = await Configuration::gen('login');
-    $login_select = await Configuration::gen('login_select');
-    $login_strongpasswords =
-      await Configuration::gen('login_strongpasswords');
-    $registration_names = await Configuration::gen('registration_names');
-    $scoring = await Configuration::gen('scoring');
-    $gameboard = await Configuration::gen('gameboard');
-    $timer = await Configuration::gen('timer');
-    $progressive_cycle = await Configuration::gen('progressive_cycle');
-    $default_bonus = await Configuration::gen('default_bonus');
-    $default_bonusdec = await Configuration::gen('default_bonusdec');
-    $bases_cycle = await Configuration::gen('bases_cycle');
-    $start_ts = await Configuration::gen('start_ts');
-    $end_ts = await Configuration::gen('end_ts');
+    $awaitables = Map {
+      'registration' => Configuration::gen('registration'),
+      'registration_players' => Configuration::gen('registration_players'),
+      'login' => Configuration::gen('login'),
+      'login_select' => Configuration::gen('login_select'),
+      'login_strongpasswords' => Configuration::gen('login_strongpasswords'),
+      'registration_names' => Configuration::gen('registration_names'),
+      'ldap' => Configuration::gen('ldap'),
+      'ldap_server' => Configuration::gen('ldap_server'),
+      'ldap_port' => Configuration::gen('ldap_port'),
+      'ldap_domain_suffix' => Configuration::gen('ldap_domain_suffix'),
+      'scoring' => Configuration::gen('scoring'),
+      'gameboard' => Configuration::gen('gameboard'),
+      'timer' => Configuration::gen('timer'),
+      'progressive_cycle' => Configuration::gen('progressive_cycle'),
+      'default_bonus' => Configuration::gen('default_bonus'),
+      'default_bonusdec' => Configuration::gen('default_bonusdec'),
+      'bases_cycle' => Configuration::gen('bases_cycle'),
+      'start_ts' => Configuration::gen('start_ts'),
+      'end_ts' => Configuration::gen('end_ts'),
+    };
+
+    $results = await \HH\Asio\m($awaitables);
+
+    $registration = $results['registration'];
+    $registration_players = $results['registration_players'];
+    $login = $results['login'];
+    $login_select = $results['login_select'];
+    $login_strongpasswords = $results['login_strongpasswords'];
+    $registration_names = $results['registration_names'];
+    $ldap = $results['ldap'];
+    $ldap_server = $results['ldap_server'];
+    $ldap_port = $results['ldap_port'];
+    $ldap_domain_suffix = $results['ldap_domain_suffix'];
+    $scoring = $results['scoring'];
+    $gameboard = $results['gameboard'];
+    $timer = $results['timer'];
+    $progressive_cycle = $results['progressive_cycle'];
+    $default_bonus = $results['default_bonus'];
+    $default_bonusdec = $results['default_bonusdec'];
+    $bases_cycle = $results['bases_cycle'];
+    $start_ts = $results['start_ts'];
+    $end_ts = $results['end_ts'];
 
     $registration_on = $registration->getValue() === '1';
     $registration_off = $registration->getValue() === '0';
@@ -275,6 +321,8 @@ class AdminController extends Controller {
     $login_off = $login->getValue() === '0';
     $login_select_on = $login_select->getValue() === '1';
     $login_select_off = $login_select->getValue() === '0';
+    $ldap_on = $ldap->getValue() === '1';
+    $ldap_off = $ldap->getValue() === '0';
     $strong_passwords_on = $login_strongpasswords->getValue() === '1';
     $strong_passwords_off = $login_strongpasswords->getValue() === '0';
     $registration_names_on = $registration_names->getValue() === '1';
@@ -326,10 +374,18 @@ class AdminController extends Controller {
       $registration_tokens = <div></div>;
     }
 
-    $registration_type_select = await $this->genRegistrationTypeSelect();
+    $awaitables = Map {
+      'registration_type_select' => $this->genRegistrationTypeSelect(),
+      'configuration_duration_select' =>
+        $this->genConfigurationDurationSelect(),
+      'language_select' => $this->genLanguageSelect(),
+    };
+    $results = await \HH\Asio\m($awaitables);
+
+    $registration_type_select = $results['registration_type_select'];
     $configuration_duration_select =
-      await $this->genConfigurationDurationSelect();
-    $language_select = await $this->genLanguageSelect();
+      $results['configuration_duration_select'];
+    $language_select = $results['language_select'];
 
     return
       <div>
@@ -482,6 +538,61 @@ class AdminController extends Controller {
                           {tr('Off')}
                         </label>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section class="admin-box">
+                <header class="admin-box-header">
+                  <h3>{tr('Active Directory / LDAP')}</h3>
+                  <div class="admin-section-toggle radio-inline">
+                    <input
+                      type="radio"
+                      name="fb--conf--ldap"
+                      id="fb--conf--ldap--on"
+                      checked={$ldap_on}
+                    />
+                    <label for="fb--conf--ldap--on">{tr('On')}</label>
+                    <input
+                      type="radio"
+                      name="fb--conf--ldap"
+                      id="fb--conf--ldap--off"
+                      checked={$ldap_off}
+                    />
+                    <label for="fb--conf--ldap--off">{tr('Off')}</label>
+                  </div>
+                </header>
+                <div class="fb-column-container">
+                  <div class="col col-pad col-1-4">
+                    <div class="form-el el--block-label el--full-text">
+                      <label>{tr('LDAP Server')}</label>
+                      <input
+                        type="text"
+                        value={$ldap_server->getValue()}
+                        name="fb--conf--ldap_server"
+                      />
+                    </div>
+                  </div>
+                  <div class="col col-pad col-2-4">
+                    <div class="form-el el--block-label">
+                      <label>{tr('LDAP Port')}</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="65535"
+                        value={$ldap_port->getValue()}
+                        name="fb--conf--ldap_port"
+                      />
+                    </div>
+                  </div>
+                  <div class="col col-pad col-3-4">
+                    <div class="form-el el--block-label el--full-text">
+                      <label>{tr('LDAP Domain')}</label>
+                      <input
+                        type="text"
+                        value={$ldap_domain_suffix->getValue()}
+                        name="fb--conf--ldap_domain_suffix"
+                      />
                     </div>
                   </div>
                 </div>
@@ -789,6 +900,12 @@ class AdminController extends Controller {
                       data-action="import-game">
                       {tr('Import Full Game')}
                     </button>
+                    <input
+                      class="completely-hidden"
+                      id="import-game_file"
+                      type="file"
+                      name="game_file"
+                    />
                   </div>
                 </div>
               </div>
@@ -802,30 +919,56 @@ class AdminController extends Controller {
               <div class="col col-pad col-1-4">
                 <div class="form-el el--block-label el--full-text">
                   <div class="admin-buttons">
-                    <button class="fb-cta cta--red" data-action="import-teams">{tr('Import Teams')}</button>
-                    <input class="completely-hidden" id="import-teams_file" type="file" name="teams_file"/>
+                    <button
+                      class="fb-cta cta--red"
+                      data-action="import-teams">
+                      {tr('Import Teams')}
+                    </button>
+                    <input
+                      class="completely-hidden"
+                      id="import-teams_file"
+                      type="file"
+                      name="teams_file"
+                    />
                   </div>
                 </div>
               </div>
               <div class="col col-pad col-1-4">
                 <div class="form-el el--block-label el--full-text">
                   <div class="admin-buttons">
-                    <button class="fb-cta cta--yellow" data-action="export-teams">{tr('Export Teams')}</button>
+                    <button
+                      class="fb-cta cta--yellow"
+                      data-action="export-teams">
+                      {tr('Export Teams')}
+                    </button>
                   </div>
                 </div>
               </div>
               <div class="col col-pad col-1-4">
                 <div class="form-el el--block-label el--full-text">
                   <div class="admin-buttons">
-                    <button class="fb-cta cta--red" data-action="import-logos">{tr('Import Logos')}</button>
-                    <input class="completely-hidden" id="import-logos_file" type="file" name="logos_file"/>
+                    <button
+                      class="fb-cta cta--red"
+                      data-action="import-logos">
+                      {tr('Import Logos')}
+                    </button>
+                    <input
+                      class="completely-hidden"
+                      id="import-logos_file"
+                      type="file"
+                      name="logos_file"
+                    />
                   </div>
                 </div>
               </div>
               <div class="col col-pad col-1-4">
                 <div class="form-el el--block-label el--full-text">
                   <div class="admin-buttons">
-                    <button class="fb-cta cta--yellow" data-action="export-logos">{tr('Export Logos')}</button>
+                    <button
+                      class="fb-cta cta--yellow"
+                      data-action="export-logos">
+                      {tr('Export Logos')}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -838,34 +981,60 @@ class AdminController extends Controller {
             <div class="fb-column-container">
               <div class="col col-pad col-1-4">
                 <div class="form-el el--block-label el--full-text">
-                   <div class="admin-buttons">
-                     <button class="fb-cta cta--red" data-action="import-levels">{tr('Import Levels')}</button>
-                     <input class="completely-hidden" id="import-levels_file" type="file" name="levels_file"/>
-                   </div>
-                 </div>
-               </div>
-               <div class="col col-pad col-1-4">
-                 <div class="form-el el--block-label el--full-text">
-                   <div class="admin-buttons">
-                     <button class="fb-cta cta--yellow" data-action="export-levels">{tr('Export Levels')}</button>
-                   </div>
-                 </div>
-               </div>
-               <div class="col col-pad col-1-4">
-                 <div class="form-el el--block-label el--full-text">
-                   <div class="admin-buttons">
-                     <button class="fb-cta cta--red" data-action="import-categories">{tr('Import Categories')}</button>
-                     <input class="completely-hidden" id="import-categories_file" type="file" name="categories_file"/>
-                   </div>
-                 </div>
-               </div>
-               <div class="col col-pad col-1-4">
-                 <div class="form-el el--block-label el--full-text">
-                   <div class="admin-buttons">
-                     <button class="fb-cta cta--yellow" data-action="export-categories">{tr('Export Categories')}</button>
-                   </div>
-                 </div>
-               </div>
+                  <div class="admin-buttons">
+                    <button
+                      class="fb-cta cta--red"
+                      data-action="import-levels">
+                      {tr('Import Levels')}
+                    </button>
+                    <input
+                      class="completely-hidden"
+                      id="import-levels_file"
+                      type="file"
+                      name="levels_file"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="col col-pad col-1-4">
+                <div class="form-el el--block-label el--full-text">
+                  <div class="admin-buttons">
+                    <button
+                      class="fb-cta cta--yellow"
+                      data-action="export-levels">
+                      {tr('Export Levels')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="col col-pad col-1-4">
+                <div class="form-el el--block-label el--full-text">
+                  <div class="admin-buttons">
+                    <button
+                      class="fb-cta cta--red"
+                      data-action="import-categories">
+                      {tr('Import Categories')}
+                    </button>
+                    <input
+                      class="completely-hidden"
+                      id="import-categories_file"
+                      type="file"
+                      name="categories_file"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="col col-pad col-1-4">
+                <div class="form-el el--block-label el--full-text">
+                  <div class="admin-buttons">
+                    <button
+                      class="fb-cta cta--yellow"
+                      data-action="export-categories">
+                      {tr('Export Categories')}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>
@@ -1179,11 +1348,20 @@ class AdminController extends Controller {
   }
 
   public async function genRenderFlagsContent(): Awaitable<:xhp> {
-    $countries_select = await $this->genGenerateCountriesSelect(0);
-    $level_categories_select =
-      await $this->genGenerateLevelCategoriesSelect(0);
-    $filter_categories_select =
-      await $this->genGenerateFilterCategoriesSelect();
+    $awaitables = Map {
+      'countries_select' => $this->genGenerateCountriesSelect(0),
+      'level_categories_select' => $this->genGenerateLevelCategoriesSelect(
+        0,
+      ),
+      'filter_categories_select' =>
+        $this->genGenerateFilterCategoriesSelect(),
+    };
+
+    $results = await \HH\Asio\m($awaitables);
+
+    $countries_select = $results['countries_select'];
+    $level_categories_select = $results['level_categories_select'];
+    $filter_categories_select = $results['filter_categories_select'];
 
     $adminsections =
       <div class="admin-sections">
@@ -1502,10 +1680,18 @@ class AdminController extends Controller {
         }
       }
 
-      $countries_select =
-        await $this->genGenerateCountriesSelect($flag->getEntityId());
-      $level_categories_select =
-        await $this->genGenerateLevelCategoriesSelect($flag->getCategoryId());
+      $awaitables = Map {
+        'countries_select' => $this->genGenerateCountriesSelect(
+          $flag->getEntityId(),
+        ),
+        'level_categories_select' =>
+          $this->genGenerateLevelCategoriesSelect($flag->getCategoryId()),
+      };
+
+      $results = await HH\Asio\m($awaitables);
+
+      $countries_select = $results['countries_select'];
+      $level_categories_select = $results['level_categories_select'];
 
       $adminsections->appendChild(
         <section class="validate-form admin-box section-locked">
@@ -1688,11 +1874,20 @@ class AdminController extends Controller {
   }
 
   public async function genRenderBasesContent(): Awaitable<:xhp> {
-    $countries_select = await $this->genGenerateCountriesSelect(0);
-    $level_categories_select =
-      await $this->genGenerateLevelCategoriesSelect(0);
-    $filter_categories_select =
-      await $this->genGenerateFilterCategoriesSelect();
+    $awaitables = Map {
+      'countries_select' => $this->genGenerateCountriesSelect(0),
+      'level_categories_select' => $this->genGenerateLevelCategoriesSelect(
+        0,
+      ),
+      'filter_categories_select' =>
+        $this->genGenerateFilterCategoriesSelect(),
+    };
+
+    $results = await \HH\Asio\m($awaitables);
+
+    $countries_select = $results['countries_select'];
+    $level_categories_select = $results['level_categories_select'];
+    $filter_categories_select = $results['filter_categories_select'];
 
     $adminsections =
       <div class="admin-sections">
@@ -2012,10 +2207,18 @@ class AdminController extends Controller {
         $l_c++;
       }
 
-      $countries_select =
-        await $this->genGenerateCountriesSelect($base->getEntityId());
-      $level_categories_select =
-        await $this->genGenerateLevelCategoriesSelect($base->getCategoryId());
+      $awaitables = Map {
+        'countries_select' => $this->genGenerateCountriesSelect(
+          $base->getEntityId(),
+        ),
+        'level_categories_select' =>
+          $this->genGenerateLevelCategoriesSelect($base->getCategoryId()),
+      };
+
+      $results = await HH\Asio\m($awaitables);
+
+      $countries_select = $results['countries_select'];
+      $level_categories_select = $results['level_categories_select'];
 
       $adminsections->appendChild(
         <section class="validate-form admin-box section-locked">
@@ -2334,7 +2537,6 @@ class AdminController extends Controller {
         $current_status = 'ENABLED';
       }
 
-
       if (!$using_country) {
         $status_action =
           <a
@@ -2497,6 +2699,9 @@ class AdminController extends Controller {
     if (count($failures) > 0) {
       $failures_tbody = <tbody></tbody>;
       foreach ($failures as $failure) {
+		if(!Level::genCheckStatus($failure->getLevelId())){
+			continue;
+		}
         $level = await Level::gen($failure->getLevelId());
         $country = await Country::gen($level->getEntityId());
         $level_str = $country->getName().' - '.$level->getTitle();
@@ -2691,7 +2896,17 @@ class AdminController extends Controller {
     $c = 1;
     $all_teams = await Team::genAllTeams();
     foreach ($all_teams as $team) {
-      $xlink_href = '#icon--badge-'.$team->getLogo();
+      $logo_model = await $team->getLogoModel();
+      if ($logo_model->getCustom()) {
+        $image = <img class="icon--badge" src={$logo_model->getLogo()}></img>;
+      } else {
+        $iconbadge = '#icon--badge-'.$logo_model->getName();
+        $image =
+          <svg class="icon--badge">
+            <use href={$iconbadge} />
+          </svg>;
+      }
+
       $team_protected = $team->getProtected();
       $team_active_on = $team->getActive();
       $team_active_off = !$team->getActive();
@@ -2699,6 +2914,7 @@ class AdminController extends Controller {
       $team_admin_off = !$team->getAdmin();
       $team_visible_on = $team->getVisible();
       $team_visible_off = !$team->getVisible();
+      $team_id = strval($team->getId());
 
       $team_status_name = 'fb--teams--team-'.strval($team->getId()).'-status';
       $team_status_on_id =
@@ -2778,9 +2994,15 @@ class AdminController extends Controller {
             <label for={$team_admin_off_id}>{tr('Off')}</label>
           </div>;
         $delete_button =
-          <button class="fb-cta cta--red" data-action="delete">
-            {tr('Delete')}
-          </button>;
+          <div style="display: inline">
+            <input type="hidden" name="team_id" value={$team_id} />
+            <a
+              href="#"
+              class="fb-cta cta--red js-delete-team"
+              style="margin-right: 20px">
+              {tr('Delete')}
+            </a>
+          </div>;
       }
 
       $tab_team = 'team'.strval($team->getId());
@@ -2788,10 +3010,19 @@ class AdminController extends Controller {
       $tab_scores = 'scores'.strval($team->getId());
       $tab_failures = 'failures'.strval($team->getId());
 
-      $team_tabs = await $this->genGenerateTeamTabs($team->getId());
-      $team_names = await $this->genGenerateTeamNames($team->getId());
-      $team_scores = await $this->genGenerateTeamScores($team->getId());
-      $team_failures = await $this->genGenerateTeamFailures($team->getId());
+      $awaitables = Map {
+        'team_tabs' => $this->genGenerateTeamTabs($team->getId()),
+        'team_names' => $this->genGenerateTeamNames($team->getId()),
+        'team_scores' => $this->genGenerateTeamScores($team->getId()),
+        'team_failures' => $this->genGenerateTeamFailures($team->getId()),
+      };
+
+      $results = await \HH\Asio\m($awaitables);
+
+      $team_tabs = $results['team_tabs'];
+      $team_names = $results['team_names'];
+      $team_scores = $results['team_scores'];
+      $team_failures = $results['team_failures'];
 
       $adminsections->appendChild(
         <div>
@@ -2890,10 +3121,7 @@ class AdminController extends Controller {
                     <div class="fb-column-container">
                       <div class="col col-shrink">
                         <div class="post-avatar has-avatar">
-                          <svg class="icon icon--badge">
-                            <use href={$xlink_href} />
-
-                          </svg>
+                          {$image}
                         </div>
                       </div>
                       <div class="form-el--required col col-grow">
@@ -2971,9 +3199,18 @@ class AdminController extends Controller {
     $adminsections = <div class="admin-sections"></div>;
 
     $all_logos = await Logo::genAllLogos();
+
     foreach ($all_logos as $logo) {
-      $xlink_href = '#icon--badge-'.$logo->getName();
-      $using_logo = await Team::genWhoUses($logo->getName());
+      if ($logo->getCustom()) {
+        $image = <img class="icon--badge" src={$logo->getLogo()}></img>;
+      } else {
+        $iconbadge = '#icon--badge-'.$logo->getName();
+        $image =
+          <svg class="icon--badge">
+            <use href={$iconbadge} />
+          </svg>;
+      }
+      $using_logo = await MultiTeam::genWhoUses($logo->getName());
       $current_use = (count($using_logo) > 0) ? tr('Yes') : tr('No');
       if ($logo->getEnabled()) {
         $highlighted_action = 'disable_logo';
@@ -3021,10 +3258,7 @@ class AdminController extends Controller {
             <div class="fb-column-container">
               <div class="col col-pad col-shrink">
                 <div class="post-avatar has-avatar">
-                  <svg class="icon icon--badge">
-                    <use href={$xlink_href}></use>
-
-                  </svg>
+                  {$image}
                 </div>
               </div>
               <div class="col col-pad col-grow">
@@ -3068,7 +3302,7 @@ class AdminController extends Controller {
     $all_sessions = await Session::genAllSessions();
     foreach ($all_sessions as $session) {
       $session_id = 'session_'.strval($session->getId());
-      $team = await Team::genTeam($session->getTeamId());
+      $team = await MultiTeam::genTeam($session->getTeamId());
       $adminsections->appendChild(
         <section class="admin-box section-locked">
           <form class="session_form" name={$session_id}>
@@ -3111,6 +3345,18 @@ class AdminController extends Controller {
                   <span class="highlighted">
                     <label class="admin-label">
                       {time_ago($session->getLastAccessTs())}
+                    </label>
+                  </span>
+                </div>
+              </div>
+              <div class="col col-1-3 col-pad">
+                <div class="form-el el--block-label el--full-text">
+                  <label class="admin-label">
+                    {tr('Last Page Access')}:
+                  </label>
+                  <span class="highlighted">
+                    <label class="admin-label">
+                      {$session->getLastPageAccess()}
                     </label>
                   </span>
                 </div>
@@ -3159,6 +3405,7 @@ class AdminController extends Controller {
 
     if (count($gamelogs) > 0) {
       $logs_tbody = <tbody></tbody>;
+      $logs_table = <div></div>;
       foreach ($gamelogs as $gamelog) {
         if ($gamelog->getEntry() === 'score') {
           $log_entry =
@@ -3167,40 +3414,59 @@ class AdminController extends Controller {
           $log_entry =
             <span class="highlighted--red">{$gamelog->getEntry()}</span>;
         }
-        $team = await Team::genTeam($gamelog->getTeamId());
-        $level = await Level::gen($gamelog->getLevelId());
-        $country = await Country::gen($level->getEntityId());
-        $level_str =
-          $country->getName().
-          ' - '.
-          $level->getTitle().
-          ' - '.
-          $level->getType();
-        $logs_tbody->appendChild(
-          <tr>
-            <td>{time_ago($gamelog->getTs())}</td>
-            <td>{$log_entry}</td>
-            <td>{$level_str}</td>
-            <td>{strval($gamelog->getPoints())}</td>
-            <td>{$team->getName()}</td>
-            <td>{$gamelog->getFlag()}</td>
-          </tr>
-        );
-      }
-      $logs_table =
-        <table>
-          <thead>
+
+        $awaitables = Map {
+          'team' => MultiTeam::genTeam($gamelog->getTeamId()),
+          'level' => Level::gen($gamelog->getLevelId()),
+        };
+
+        $results = await \HH\Asio\m($awaitables);
+
+        if ($results->contains('team') && $results->contains('level')) {
+          $team = $results->get('team');
+          invariant($team !== null, 'Team should not be null');
+          invariant($team instanceof Team, 'team should be of type Team');
+
+          $level = $results->get('level');
+          invariant($level !== null, 'Level should not be null');
+          invariant($level instanceof Level, 'level should be of type Level');
+
+          $country = await Country::gen($level->getEntityId());
+
+          $team_name = $team->getName();
+
+          $level_str =
+            $country->getName().
+            ' - '.
+            $level->getTitle().
+            ' - '.
+            $level->getType();
+          $logs_tbody->appendChild(
             <tr>
-              <th>{tr('time')}_</th>
-              <th>{tr('entry')}_</th>
-              <th>{tr('level')}_</th>
-              <th>{tr('pts')}_</th>
-              <th>{tr('team')}_</th>
-              <th>{tr('flag')}_</th>
+              <td>{time_ago($gamelog->getTs())}</td>
+              <td>{$log_entry}</td>
+              <td>{$level_str}</td>
+              <td>{strval($gamelog->getPoints())}</td>
+              <td>{$team_name}</td>
+              <td>{$gamelog->getFlag()}</td>
             </tr>
-          </thead>
-          {$logs_tbody}
-        </table>;
+          );
+        }
+        $logs_table =
+          <table>
+            <thead>
+              <tr>
+                <th>{tr('time')}_</th>
+                <th>{tr('entry')}_</th>
+                <th>{tr('level')}_</th>
+                <th>{tr('pts')}_</th>
+                <th>{tr('team')}_</th>
+                <th>{tr('flag')}_</th>
+              </tr>
+            </thead>
+            {$logs_tbody}
+          </table>;
+      }
     } else {
       $logs_table =
         <div class="fb-column-container">
@@ -3238,11 +3504,25 @@ class AdminController extends Controller {
   public async function genRenderMainNav(): Awaitable<:xhp> {
     $game = await Configuration::gen('game');
     $game_status = $game->getValue() === '1';
+    $pause_action = '';
     if ($game_status) {
       $game_action =
         <a href="#" class="fb-cta cta--red js-end-game">
           {tr('End Game')}
         </a>;
+      $pause = await Configuration::gen('game_paused');
+      $game_paused = $pause->getValue() === '1';
+      if ($game_paused) {
+        $pause_action =
+          <a href="#" class="fb-cta cta--yellow js-unpause-game">
+            {tr('Unpause Game')}
+          </a>;
+      } else {
+        $pause_action =
+          <a href="#" class="fb-cta cta--red js-pause-game">
+            {tr('Pause Game')}
+          </a>;
+      }
     } else {
       $game_action =
         <a href="#" class="fb-cta cta--yellow js-begin-game">
@@ -3261,11 +3541,11 @@ class AdminController extends Controller {
                 {tr('Configuration')}
               </a>
             </li>
-              <li>
-                <a href="/index.php?p=admin&page=controls">
-                  {tr('Controls')}
-                </a>
-              </li>
+            <li>
+              <a href="/index.php?p=admin&page=controls">
+                {tr('Controls')}
+              </a>
+            </li>
             <li>
               <a href="/index.php?p=admin&page=announcements">
                 {tr('Announcements')}
@@ -3314,6 +3594,8 @@ class AdminController extends Controller {
             </li>
           </ul>
           {$game_action}
+          <p><br /></p>
+          {$pause_action}
         </nav>
         <div class="admin-nav--footer row-fixed">
           <a href="/index.php?p=game">{tr('Gameboard')}</a>

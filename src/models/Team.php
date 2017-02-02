@@ -55,11 +55,16 @@ class Team extends Model implements Importable, Exportable {
     return $this->logo;
   }
 
+  public async function getLogoModel(): Awaitable<Logo> {
+    $logo = await Logo::genByName($this->logo);
+    return $logo;
+  }
+
   public function getCreatedTs(): string {
     return $this->created_ts;
   }
 
-  private static function teamFromRow(Map<string, string> $row): Team {
+  protected static function teamFromRow(Map<string, string> $row): Team {
     return new Team(
       intval(must_have_idx($row, 'id')),
       intval(must_have_idx($row, 'active')),
@@ -77,21 +82,21 @@ class Team extends Model implements Importable, Exportable {
 
   // Import teams.
   public static async function importAll(
-    array<string, array<string, mixed>> $elements
+    array<string, array<string, mixed>> $elements,
   ): Awaitable<bool> {
     foreach ($elements as $team) {
       $name = must_have_string($team, 'name');
       $exist = await self::genTeamExist($name);
       if (!$exist) {
         $team_id = await self::genCreateAll(
-          (bool)must_have_idx($team, 'active'),
+          (bool) must_have_idx($team, 'active'),
           $name,
           must_have_string($team, 'password_hash'),
           must_have_int($team, 'points'),
           must_have_string($team, 'logo'),
-          (bool)must_have_idx($team, 'admin'),
-          (bool)must_have_idx($team, 'protected'),
-          (bool)must_have_idx($team, 'visible'),
+          (bool) must_have_idx($team, 'admin'),
+          (bool) must_have_idx($team, 'protected'),
+          (bool) must_have_idx($team, 'visible'),
         );
       }
     }
@@ -99,7 +104,8 @@ class Team extends Model implements Importable, Exportable {
   }
 
   // Export teams.
-  public static async function exportAll(): Awaitable<array<string, array<string, mixed>>> {
+  public static async function exportAll(
+  ): Awaitable<array<string, array<string, mixed>>> {
     $all_teams_data = array();
     $all_teams = await self::genAllTeams();
 
@@ -114,13 +120,11 @@ class Team extends Model implements Importable, Exportable {
         'password_hash' => $team->getPasswordHash(),
         'points' => $team->getPoints(),
         'logo' => $team->getLogo(),
-        'data' => $team_data
+        'data' => $team_data,
       );
       array_push($all_teams_data, $one_team);
     }
-    return array(
-      'teams' => $all_teams_data
-    );
+    return array('teams' => $all_teams_data);
   }
 
   // Retrieve how many teams are using one logo.
@@ -168,6 +172,32 @@ class Team extends Model implements Importable, Exportable {
     if ($result->numRows() > 0) {
       invariant($result->numRows() === 1, 'Expected exactly one result');
       $team = self::teamFromRow($result->mapRows()[0]);
+
+      // Check if ldap is enabled and verify credentials if successful
+      // An exception is admin user, which is verified locally
+      $ldap = await Configuration::gen('ldap');
+      if ($ldap->getValue() === '1' && !$team->getAdmin()) {
+        // Get server information from configuration
+        $ldap_server = await Configuration::gen('ldap_server');
+        $ldap_port = await Configuration::gen('ldap_port');
+        $ldap_domain_suffix = await Configuration::gen('ldap_domain_suffix');
+        $ldapconn = ldap_connect(
+          $ldap_server->getValue(),
+          intval($ldap_port->getValue()),
+        );
+        if (!$ldapconn)
+          return null;
+        $team_name = trim($team->getName());
+        $bind = ldap_bind(
+          $ldapconn,
+          $team_name.$ldap_domain_suffix->getValue(),
+          $password,
+        );
+        if (!$bind)
+          return null;
+        //Successful Login via LDAP
+        return $team;
+      }
 
       if (password_verify($password, $team->getPasswordHash())) {
         if (self::regenerateHash($team->getPasswordHash())) {
@@ -226,6 +256,7 @@ class Team extends Model implements Importable, Exportable {
         $logo,
       );
 
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
     invariant($result->numRows() === 1, 'Expected exactly one result');
     return intval($result->mapRows()[0]['id']);
   }
@@ -257,13 +288,15 @@ class Team extends Model implements Importable, Exportable {
     );
 
     // Return newly created team_id
-    $result = await $db->queryf(
-      'SELECT id FROM teams WHERE name = %s AND password_hash = %s AND logo = %s LIMIT 1',
-      $name,
-      $password_hash,
-      $logo,
-    );
+    $result =
+      await $db->queryf(
+        'SELECT id FROM teams WHERE name = %s AND password_hash = %s AND logo = %s LIMIT 1',
+        $name,
+        $password_hash,
+        $logo,
+      );
 
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
     invariant($result->numRows() === 1, 'Expected exactly one result');
     return intval($result->mapRows()[0]['id']);
   }
@@ -281,6 +314,7 @@ class Team extends Model implements Importable, Exportable {
       $email,
       $team_id,
     );
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
   }
 
   // Get a team data.
@@ -310,6 +344,8 @@ class Team extends Model implements Importable, Exportable {
       $points,
       $team_id,
     );
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
+    Control::invalidateMCRecords('ALL_ACTIVITY'); // Invalidate Memcached Control data.
   }
 
   // Update team password.
@@ -323,6 +359,8 @@ class Team extends Model implements Importable, Exportable {
       $password_hash,
       $team_id,
     );
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
+    await Session::genDeleteByTeam($team_id);
   }
 
   // Delete team.
@@ -332,6 +370,19 @@ class Team extends Model implements Importable, Exportable {
       'DELETE FROM teams WHERE id = %d AND protected = 0 LIMIT 1',
       $team_id,
     );
+    await $db->queryf(
+      'DELETE FROM registration_tokens WHERE team_id = %d',
+      $team_id,
+    );
+    await $db->queryf('DELETE FROM scores_log WHERE team_id = %d', $team_id);
+    await $db->queryf('DELETE FROM hints_log WHERE team_id = %d', $team_id);
+    await $db->queryf(
+      'DELETE FROM failures_log WHERE team_id = %d',
+      $team_id,
+    );
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
+    Control::invalidateMCRecords('ALL_ACTIVITY'); // Invalidate Memcached Control data.
+    await Session::genDeleteByTeam($team_id);
   }
 
   // Enable or disable teams by passing 1 or 0.
@@ -345,6 +396,10 @@ class Team extends Model implements Importable, Exportable {
       $status ? 1 : 0,
       $team_id,
     );
+    if ($status === false) {
+      await Session::genDeleteByTeam($team_id);
+    }
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
   }
 
   // Enable or disable all teams by passing 1 or 0.
@@ -354,6 +409,10 @@ class Team extends Model implements Importable, Exportable {
       'UPDATE teams SET active = %d WHERE id > 0 AND protected = 0',
       $status ? 1 : 0,
     );
+    if ($status === false) {
+      await Session::genDeleteAllUnprotected();
+    }
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
   }
 
   // Sets toggles team admin status.
@@ -367,6 +426,8 @@ class Team extends Model implements Importable, Exportable {
       $admin ? 1 : 0,
       $team_id,
     );
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
+    await Session::genDeleteByTeam($team_id); // Delete all sessions for team in question
   }
 
   // Enable or disable team visibility by passing 1 or 0.
@@ -380,6 +441,8 @@ class Team extends Model implements Importable, Exportable {
       $visible ? 1 : 0,
       $team_id,
     );
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
+    Control::invalidateMCRecords('ALL_ACTIVITY'); // Invalidate Memcached Control data.
   }
 
   // Check if a team name is already created.
@@ -537,12 +600,15 @@ class Team extends Model implements Importable, Exportable {
       'UPDATE teams SET last_score = NOW() WHERE id = %d LIMIT 1',
       $team_id,
     );
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
   }
 
   // Set all points to zero for all teams.
   public static async function genResetAllPoints(): Awaitable<void> {
     $db = await self::genDb();
     await $db->queryf('UPDATE teams SET points = 0 WHERE id > 0');
+    MultiTeam::invalidateMCRecords(); // Invalidate Memcached MultiTeam data.
+    Control::invalidateMCRecords('ALL_ACTIVITY'); // Invalidate Memcached Control data.
   }
 
   // Teams total number.
@@ -561,7 +627,7 @@ class Team extends Model implements Importable, Exportable {
     $db = await self::genDb();
     $result =
       await $db->queryf(
-        'SELECT * FROM teams WHERE id = (SELECT team_id FROM scores_log WHERE level_id = %d ORDER BY ts LIMIT 0,1) AND visible = 1 AND active = 1',
+        'SELECT * FROM teams WHERE id = (SELECT team_id FROM scores_log WHERE level_id = %d AND team_id IN (SELECT id FROM teams WHERE visible = 1 AND active = 1) ORDER BY ts LIMIT 0,1)',
         $level_id,
       );
     return self::teamFromRow($result->mapRows()[0]);
@@ -589,7 +655,7 @@ class Team extends Model implements Importable, Exportable {
   // Get rank position for a team
   public static async function genMyRank(int $team_id): Awaitable<int> {
     $rank = 1;
-    $leaderboard = await self::genLeaderboard();
+    $leaderboard = await MultiTeam::genLeaderboard();
     foreach ($leaderboard as $team) {
       if ($team_id === $team->getId()) {
         return $rank;

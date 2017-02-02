@@ -14,6 +14,7 @@ class AdminAjaxController extends AjaxController {
         'session_id' => FILTER_VALIDATE_INT,
         'cookie' => FILTER_SANITIZE_STRING,
         'data' => FILTER_UNSAFE_RAW,
+        'last_page_access' => FILTER_SANITIZE_STRING,
         'name' => FILTER_UNSAFE_RAW,
         'password' => FILTER_UNSAFE_RAW,
         'admin' => FILTER_VALIDATE_INT,
@@ -35,11 +36,11 @@ class AdminAjaxController extends AjaxController {
           'options' => array('regexp' => '/^[\w\-\.]+$/'),
         ),
         'attachment_file' => FILTER_UNSAFE_RAW,
-        'game_file'   => FILTER_UNSAFE_RAW,
-        'teams_file'  => FILTER_UNSAFE_RAW,
+        'game_file' => FILTER_UNSAFE_RAW,
+        'teams_file' => FILTER_UNSAFE_RAW,
         'levels_file' => FILTER_UNSAFE_RAW,
         'categories_file' => FILTER_UNSAFE_RAW,
-        'logos_file'  => FILTER_UNSAFE_RAW,
+        'logos_file' => FILTER_UNSAFE_RAW,
         'link_id' => FILTER_VALIDATE_INT,
         'link' => FILTER_UNSAFE_RAW,
         'category_id' => FILTER_VALIDATE_INT,
@@ -120,6 +121,8 @@ class AdminAjaxController extends AjaxController {
       'delete_announcement',
       'create_tokens',
       'end_game',
+      'pause_game',
+      'unpause_game',
       'reset_game',
       'backup_db',
       'export_game',
@@ -131,7 +134,7 @@ class AdminAjaxController extends AjaxController {
       'import_teams',
       'import_logos',
       'import_levels',
-      'import_categories'
+      'import_categories',
     );
   }
 
@@ -420,6 +423,12 @@ class AdminAjaxController extends AjaxController {
         return Utils::ok_response('Success', 'admin');
       case 'end_game':
         await Control::genEnd();
+        return Utils::ok_response('Success', 'admin');
+      case 'pause_game':
+        await Control::genPause();
+        return Utils::ok_response('Success', 'admin');
+      case 'unpause_game':
+        await Control::genUnpause();
         return Utils::ok_response('Success', 'admin');
       case 'backup_db':
         Control::backupDb();

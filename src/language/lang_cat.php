@@ -453,6 +453,8 @@ $translations = array(
     'Creation Time',
   'Last Access' =>
     'Últim Acces',
+  'Last Page Access' =>
+    'Darrera Pàgina d\'Accés',
   'Data' =>
     'Dades',
   'Sessions' =>
@@ -656,4 +658,12 @@ $translations = array(
     'Salta per començar a jugar',
   'Powered By Facebook' =>
     'Powered By Facebook',
+  'Active Directory / LDAP' =>
+    'Active Directory / LDAP',
+  'LDAP Server' =>
+    'LDAP Server',
+  'LDAP Port' =>
+    'LDAP Port',
+  'LDAP Domain' =>
+    'LDAP Domain',
 );

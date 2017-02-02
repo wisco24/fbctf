@@ -51,13 +51,6 @@ function repo_osquery() {
   sudo add-apt-repository "deb [arch=amd64] https://osquery-packages.s3.amazonaws.com/trusty trusty main"
 }
 
-function repo_mycli() {
-  log "Adding MyCLI repository keys"
-  curl -s https://packagecloud.io/gpg.key | sudo apt-key add -
-  package apt-transport-https
-  echo "deb https://packagecloud.io/amjith/mycli/ubuntu/ trusty main" | sudo tee -a /etc/apt/sources.list
-}
-
 function install_mysql() {
   local __pwd=$1
 
@@ -137,7 +130,7 @@ function letsencrypt_cert() {
 EOF
     sudo chmod +x /root/tmp/certbot.sh
   else
-    /usr/bin/certbot-auto certonly -n --agree-tos --standalone --standalone-supported-challenges tls-sni-01 -m "$__myemail" -d "$__mydomain"
+    /usr/bin/certbot-auto certonly -n --agree-tos --standalone --standalone-supported-challenges tls-sni-01 --register-unsafely-without-email -d "$__mydomain"
     sudo ln -s "/etc/letsencrypt/live/$__mydomain/fullchain.pem" "$1" || true
     sudo ln -s "/etc/letsencrypt/live/$__mydomain/privkey.pem" "$2" || true
   fi
@@ -214,6 +207,7 @@ function install_nginx() {
 # second where the repo is installed
 function install_hhvm() {
   local __path=$1
+  local __config=$2
 
   package software-properties-common
 
@@ -232,12 +226,14 @@ function install_hhvm() {
   sudo apt-get remove hhvm -y
   # Clear old files
   sudo rm -Rf /var/run/hhvm/*
+  sudo rm -Rf /var/cache/hhvm/*
+
   local __package="hhvm_3.14.5~$(lsb_release -sc)_amd64.deb"
   dl "http://dl.hhvm.com/ubuntu/pool/main/h/hhvm/$__package" "/tmp/$__package"
   sudo dpkg -i "/tmp/$__package"
 
   log "Copying HHVM configuration"
-  cat "$__path/extra/hhvm.conf" | sed "s|CTFPATH|$__path/|g" | sudo tee /etc/hhvm/server.ini
+  cat "$__path/extra/hhvm.conf" | sed "s|CTFPATH|$__path/|g" | sudo tee "$__config"
 
   log "HHVM as PHP systemwide"
   sudo /usr/bin/update-alternatives --install /usr/bin/php php /usr/bin/hhvm 60
@@ -251,10 +247,14 @@ function install_hhvm() {
 
 function hhvm_performance() {
   local __path=$1
+  local __config=$2
+  local __oldrepo="/var/run/hhvm/hhvm.hhbc"
+  local __repofile="/var/cache/hhvm/hhvm.hhbc"
 
   log "Enabling HHVM RepoAuthoritative mode"
+  cat "$__config" | sed "s|$__oldrepo|$__repofile|g" | sudo tee "$__config"
   sudo hhvm-repo-mode enable "$__path"
-  sudo chown www-data:www-data /var/run/hhvm/hhvm.hhbc
+  sudo chown www-data:www-data "$__repofile"
 }
 
 function install_composer() {
@@ -341,19 +341,21 @@ function update_repo() {
     killall -9 grunt
   fi
 
-  echo "[+] Pulling from remote repository"
+  log "Pulling from remote repository"
   git pull --rebase https://github.com/facebook/fbctf.git
 
-  echo "[+] Starting sync to $__ctf_path"
+  log "Starting sync to $__ctf_path"
   if [[ "$__code_path" != "$__ctf_path" ]]; then
       [[ -d "$__ctf_path" ]] || sudo mkdir -p "$__ctf_path"
 
-      echo "[+] Copying all CTF code to destination folder"
+      log "Copying all CTF code to destination folder"
       sudo rsync -a --exclude node_modules --exclude vendor "$__code_path/" "$__ctf_path/"
 
       # This is because sync'ing files is done with unison
       if [[ "$__mode" == "dev" ]]; then
-          echo "[+] Setting permissions"
+          log "Configuring git to ignore permission changes"
+          git -C "$CTF_PATH/" config core.filemode false
+          log "Setting permissions"
           sudo chmod -R 777 "$__ctf_path/"
       fi
   fi
