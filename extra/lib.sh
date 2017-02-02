@@ -294,8 +294,8 @@ function import_empty_db() {
   mysql -u "$__user" --password="$__pwd" --host="$__host" "$__db" -e "source $__path/database/logos.sql;"
 
   log "Creating user..."
-  mysql -u "$__user" --password="$__pwd" --host="$__host" -e "CREATE USER '$__u'@'localhost' IDENTIFIED BY '$__p';" || true # don't fail if the user exists
-  mysql -u "$__user" --password="$__pwd" --host="$__host" -e "GRANT ALL PRIVILEGES ON \`$__db\`.* TO '$__u'@'localhost';"
+  mysql -u "$__user" --password="$__pwd" --host="$__host" -e "CREATE USER '$__u'@'%' IDENTIFIED BY '$__p';" || true # don't fail if the user exists
+  mysql -u "$__user" --password="$__pwd" --host="$__host" -e "GRANT ALL PRIVILEGES ON \`$__db\`.* TO '$__u'@'%';"
   mysql -u "$__user" --password="$__pwd" --host="$__host" -e "FLUSH PRIVILEGES;"
 
   log "DB Connection file"
