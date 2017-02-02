@@ -40,6 +40,7 @@ DB="fbctf"
 U="ctf"
 P="ctf"
 P_ROOT="root"
+REMOTE_ENDPOINT=
 
 # Default values
 MODE="dev"
@@ -255,7 +256,7 @@ install_unison
 log "Remember install the same version of unison (2.48.3) in your host machine"
 
 # Database creation
-import_empty_db "root" "$P_ROOT" "$DB" "$CTF_PATH" "$MODE"
+import_empty_db "root" "$P_ROOT" "$DB" "$CTF_PATH" "$MODE" "$REMOTE_ENDPOINT"
 
 # Make attachments folder world writable
 sudo chmod 777 "$CTF_PATH/src/data/attachments"

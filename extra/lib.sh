@@ -276,24 +276,30 @@ function import_empty_db() {
   local __db=$3
   local __path=$4
   local __mode=$5
+  local __host=localhost
+
+  if [[ -n $6 ]]
+    then
+      __host="$6"
+  fi
 
   log "Creating DB - $__db"
-  mysql -u "$__user" --password="$__pwd" -e "CREATE DATABASE IF NOT EXISTS \`$__db\`;"
+  mysql -u "$__user" --password="$__pwd" --host="$__host" -e "CREATE DATABASE IF NOT EXISTS \`$__db\`;"
 
   log "Importing schema..."
-  mysql -u "$__user" --password="$__pwd" "$__db" -e "source $__path/database/schema.sql;"
+  mysql -u "$__user" --password="$__pwd" --host="$__host" "$__db" -e "source $__path/database/schema.sql;"
   log "Importing countries..."
-  mysql -u "$__user" --password="$__pwd" "$__db" -e "source $__path/database/countries.sql;"
+  mysql -u "$__user" --password="$__pwd" --host="$__host" "$__db" -e "source $__path/database/countries.sql;"
   log "Importing logos..."
-  mysql -u "$__user" --password="$__pwd" "$__db" -e "source $__path/database/logos.sql;"
+  mysql -u "$__user" --password="$__pwd" --host="$__host" "$__db" -e "source $__path/database/logos.sql;"
 
   log "Creating user..."
-  mysql -u "$__user" --password="$__pwd" -e "CREATE USER '$__u'@'localhost' IDENTIFIED BY '$__p';" || true # don't fail if the user exists
-  mysql -u "$__user" --password="$__pwd" -e "GRANT ALL PRIVILEGES ON \`$__db\`.* TO '$__u'@'localhost';"
-  mysql -u "$__user" --password="$__pwd" -e "FLUSH PRIVILEGES;"
+  mysql -u "$__user" --password="$__pwd" --host="$__host" -e "CREATE USER '$__u'@'localhost' IDENTIFIED BY '$__p';" || true # don't fail if the user exists
+  mysql -u "$__user" --password="$__pwd" --host="$__host" -e "GRANT ALL PRIVILEGES ON \`$__db\`.* TO '$__u'@'localhost';"
+  mysql -u "$__user" --password="$__pwd" --host="$__host" -e "FLUSH PRIVILEGES;"
 
   log "DB Connection file"
-  cat "$__path/extra/settings.ini.example" | sed "s/DATABASE/$__db/g" | sed "s/MYUSER/$__u/g" | sed "s/MYPWD/$__p/g" > "$__path/settings.ini"
+  cat "$__path/extra/settings.ini.example" | sed "s/DATABASE/$__db/g" | sed "s/MYUSER/$__u/g" | sed "s/MYPWD/$__p/g" | sed "0,/127.0.0.1/{s/127.0.0.1/$__host/}"> "$__path/settings.ini"
 
   local PASSWORD
   log "Adding default admin user"
@@ -303,9 +309,10 @@ function import_empty_db() {
     PASSWORD=$(head -c 500 /dev/urandom | md5sum | cut -d" " -f1)
   fi
 
-  set_password "$PASSWORD" "$__user" "$__pwd" "$__db" "$__path"
+  set_password "$PASSWORD" "$__user" "$__pwd" "$__db" "$__path" "$__host"
   log "The password for admin is: $PASSWORD"
 }
+
 
 function set_password() {
   local __admin_pwd=$1
@@ -313,14 +320,15 @@ function set_password() {
   local __db_pwd=$3
   local __db=$4
   local __path=$5
+  local __host=$6
 
   HASH=$(hhvm -f "$__path/extra/hash.php" "$__admin_pwd")
 
   # First try to delete the existing admin user
-  mysql -u "$__user" --password="$__db_pwd" "$__db" -e "DELETE FROM teams WHERE name='admin' AND admin=1"
+  mysql -u "$__user" --password="$__db_pwd" --host="$__host" "$__db" -e "DELETE FROM teams WHERE name='admin' AND admin=1"
 
   # Then insert the new admin user with ID 1 (just as a convention, we shouldn't rely on this in the code)
-  mysql -u "$__user" --password="$__db_pwd" "$__db" -e "INSERT INTO teams (id, name, password_hash, admin, protected, logo, created_ts) VALUES (1, 'admin', '$HASH', 1, 1, 'admin', NOW());"
+  mysql -u "$__user" --password="$__db_pwd" --host="$__host" "$__db" -e "INSERT INTO teams (id, name, password_hash, admin, protected, logo, created_ts) VALUES (1, 'admin', '$HASH', 1, 1, 'admin', NOW());"
 }
 
 function update_repo() {
