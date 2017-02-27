@@ -109,6 +109,8 @@ class IndexAjaxController extends AjaxController {
     array<string> $names,
     array<string> $emails,
   ): Awaitable<string> {
+    $ldap_password = $password;
+
     // Check if registration is enabled
     $registration = await Configuration::gen('registration');
     if ($registration->getValue() === '0') {
@@ -144,7 +146,6 @@ class IndexAjaxController extends AjaxController {
       // Use randomly generated password for local account for LDAP users
       // This will help avoid leaking users ldap passwords if the server's database
       // is compromised.
-      $ldap_password = $password;
       $password = gmp_strval(
         gmp_init(bin2hex(openssl_random_pseudo_bytes(16)), 16),
         62,
@@ -189,6 +190,7 @@ class IndexAjaxController extends AjaxController {
     // Verify that this team name is not created yet
     $team_exists = await Team::genTeamExist($shortname);
     if (!$team_exists) {
+      invariant(is_string($password), "Expected password to be a string");
       $password_hash = Team::generateHash($password);
       $team_id =
         await Team::genCreate($shortname, $password_hash, $logo_name);
@@ -205,9 +207,11 @@ class IndexAjaxController extends AjaxController {
           await Token::genUse($token, $team_id);
         }
         // Login the team
-        if ($ldap->getValue() === '1')
-          return await $this->genLoginTeam($team_id, $ldap_password); else
+        if ($ldap->getValue() === '1') {
+          return await $this->genLoginTeam($team_id, $ldap_password);
+        } else {
           return await $this->genLoginTeam($team_id, $password);
+        }
       } else {
         return Utils::error_response('Registration failed', 'registration');
       }
@@ -220,15 +224,17 @@ class IndexAjaxController extends AjaxController {
     int $team_id,
     string $password,
   ): Awaitable<string> {
-    // Check if login is enabled
+    // Verify credentials first so we can allow admins to login regardless of the login setting
+    $team = await Team::genVerifyCredentials($team_id, $password);
+
+    // Check if login is disabled and this isn't an admin
     $login = await Configuration::gen('login');
-    if ($login->getValue() === '0') {
+    if (($login->getValue() === '0') &&
+        ($team === null || $team->getAdmin() === false)) {
       return Utils::error_response('Login failed', 'login');
     }
 
-    // Verify credentials
-    $team = await Team::genVerifyCredentials($team_id, $password);
-
+    // Otherwise let's login any valid attempt
     if ($team) {
       SessionUtils::sessionRefresh();
       if (!SessionUtils::sessionActive()) {
