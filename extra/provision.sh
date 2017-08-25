@@ -275,6 +275,9 @@ curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
 log "Installing node.js"
 package nodejs
 
+log "Installoing Dependancies"
+sudo npm install
+
 # Install all required node_modules in the CTF folder
 sudo npm install --prefix "$CTF_PATH"
 sudo npm install -g grunt
