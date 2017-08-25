@@ -260,10 +260,8 @@ else
   log "HHVM Repo Authoritative mode NOT enabled"
 fi
 
-# Install and update NPM
-package npm
-# Update NPM with itself: https://github.com/npm/npm/issues/14610
-sudo npm install -g npm@lts
+#Install Build-Essentials
+sudo apt-get install -y build-essential npm
 
 # Install node
 log "Removing node.js legacy version"
@@ -275,8 +273,11 @@ curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
 log "Installing node.js"
 package nodejs
 
-log "Installoing Dependancies"
+# Install and update NPM
 sudo npm install
+
+# Update NPM with itself: https://github.com/npm/npm/issues/14610
+sudo npm install -g npm@lts
 
 # Install all required node_modules in the CTF folder
 sudo npm install --prefix "$CTF_PATH"
