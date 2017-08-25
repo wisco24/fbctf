@@ -266,7 +266,14 @@ package npm
 sudo npm install -g npm@lts
 
 # Install node
-package nodejs-legacy
+log "Removing node.js legacy version"
+sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge nodejs -y
+
+log "Downloading updated node.js version"
+curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+
+log "Installing node.js"
+package nodejs
 
 # Install all required node_modules in the CTF folder
 sudo npm install --prefix "$CTF_PATH"
