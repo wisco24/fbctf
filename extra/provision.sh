@@ -265,6 +265,9 @@ package npm
 # Update NPM with itself: https://github.com/npm/npm/issues/14610
 sudo npm install -g npm@lts
 
+#Install Build-Essentials
+sudo apt-get install -y build-essential
+
 # Install node
 log "Removing node.js legacy version"
 sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge nodejs -y
