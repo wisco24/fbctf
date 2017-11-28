@@ -221,7 +221,7 @@ function install_hhvm() {
   sudo apt-get update
   sudo apt-get install -y gdebi
   # Installing the package so the dependencies are installed too
-  package hhvm
+  #package hhvm
   # The HHVM package version 3.15 is broken and crashes. See: https://github.com/facebook/hhvm/issues/7333
   # Until this is fixed, install manually closest previous version, 3.14.5
   sudo apt-get remove hhvm -y
