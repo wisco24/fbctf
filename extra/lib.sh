@@ -231,7 +231,7 @@ function install_hhvm() {
 
   local __package="hhvm_3.14.5~$(lsb_release -sc)_amd64.deb"
   dl "http://dl.hhvm.com/ubuntu/pool/main/h/hhvm/$__package" "/tmp/$__package"
-  sudo gdebi "/tmp/$__package"
+  sudo gdebi --non-interactive "/tmp/$__package"
 
   log "Copying HHVM configuration"
   cat "$__path/extra/hhvm.conf" | sed "s|CTFPATH|$__path/|g" | sudo tee "$__config"
