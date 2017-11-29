@@ -215,22 +215,23 @@ function install_hhvm() {
   sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0x5a16e7281be7a449
 
   log "Adding HHVM repo"
-  sudo add-apt-repository "deb http://dl.hhvm.com/ubuntu $(lsb_release -sc) main"
+  #sudo add-apt-repository "deb http://dl.hhvm.com/ubuntu $(lsb_release -sc) main"
 
   log "Installing HHVM"
   sudo apt-get update
+  sudo apt-get install -y gdebi
   # Installing the package so the dependencies are installed too
-  package hhvm
+  #package hhvm
   # The HHVM package version 3.15 is broken and crashes. See: https://github.com/facebook/hhvm/issues/7333
   # Until this is fixed, install manually closest previous version, 3.14.5
-  sudo apt-get remove hhvm -y
+  # sudo apt-get remove hhvm -y
   # Clear old files
-  sudo rm -Rf /var/run/hhvm/*
-  sudo rm -Rf /var/cache/hhvm/*
+  # sudo rm -Rf /var/run/hhvm/*
+  # sudo rm -Rf /var/cache/hhvm/*
 
   local __package="hhvm_3.14.5~$(lsb_release -sc)_amd64.deb"
   dl "http://dl.hhvm.com/ubuntu/pool/main/h/hhvm/$__package" "/tmp/$__package"
-  sudo dpkg -i "/tmp/$__package"
+  sudo gdebi --non-interactive "/tmp/$__package"
 
   log "Copying HHVM configuration"
   cat "$__path/extra/hhvm.conf" | sed "s|CTFPATH|$__path/|g" | sudo tee "$__config"
