@@ -6,13 +6,13 @@ $translations = array(
     'H:i:s D m/d/Y', //used by date() function
   //Translations for IndexController
   'Facebook CTF' =>
-    'Facebook CTF',
+    'Trend Micro TDC',
   'Conquer the world' =>
-    'Conquer the world',
+    'Secure the World',
   'Play' =>
     'Play',
   'Welcome to the Facebook Capture the Flag Competition. By clicking "Play," you will be entered into the official CTF challenge. Good luck in your conquest.' =>
-    'Welcome to the Facebook Capture the Flag Competition. By clicking "Play," you will be entered into the official CTF challenge. Good luck in your conquest.',
+    'Welcome to the Trend Micro Threat Defense Challenge.',
   'Get ready for the CTF to start and access the gameboard now!' =>
     'Get ready for the CTF to start and access the gameboard now!',
   'Gameboard' =>
@@ -20,7 +20,7 @@ $translations = array(
   'Register Team' =>
     'Register Team',
   'Get ready for the CTF to start and register your team now!' =>
-    'Get ready for the CTF to start and register your team now!',
+    'Get ready for the TDC to start and register your team now!',
   'Login' =>
     'Login',
   'Soon' =>
