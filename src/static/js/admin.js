@@ -46,6 +46,15 @@ function deleteTeamPopup(team_id) {
   sendAdminRequest(delete_team, true);
 }
 
+//Confirm level deletion
+function deleteLevelPopup(level_id) {
+  var delete_level = {
+    action: 'delete_level',
+    level_id: level_id
+  };
+  sendAdminRequest(delete_level, true);
+}
+
 // Reset the database
 function resetDatabase() {
   var reset_database = {
@@ -565,6 +574,14 @@ function flushMemcached() {
   sendAdminRequest(flush_memcached, true);
 }
 
+//Reset Game Schedule
+function resetGameSchedule() {
+  var reset_game_schedule = {
+    action: 'reset_game_schedule'
+  };
+  sendAdminRequest(reset_game_schedule, true);
+}
+
 // Create tokens
 function createTokens() {
   var create_data = {
@@ -940,7 +957,10 @@ function toggleConfiguration(radio_id) {
     field: radio_action,
     value: action_value
   };
-  if (radio_action) {
+  var refresh_fields = ['login_strongpasswords', 'custom_logo'];
+  if (refresh_fields.indexOf(radio_action) !== -1) {
+    sendAdminRequest(toggle_data, true);
+  } else {
     sendAdminRequest(toggle_data, false);
   }
 }
@@ -951,9 +971,10 @@ function changeConfiguration(field, value) {
     field: field,
     value: value
   };
-  if (field === 'registration_type' || field === 'language') {
+  var refresh_fields = ['registration_type', 'language'];
+  if (refresh_fields.indexOf(field) !== -1) {
     sendAdminRequest(conf_data, true);
-  }else {
+  } else {
     sendAdminRequest(conf_data, false);
   }
 }
@@ -1086,6 +1107,8 @@ module.exports = {
         exportCurrentCategories();
       } else if (action === 'flush-memcached') {
         flushMemcached();
+      } else if (action === 'reset-game-schedule') {
+        resetGameSchedule();
       } else if (action === 'create-tokens') {
         createTokens();
       } else if (action === 'export-tokens') {
@@ -1199,7 +1222,7 @@ module.exports = {
       var start_day = $('input[type="number"][name="fb--schedule--start_day"]')[0].value;
       var start_hour = $('input[type="number"][name="fb--schedule--start_hour"]')[0].value;
       var start_min = $('input[type="number"][name="fb--schedule--start_min"]')[0].value;
-      var start_ts = new Date(start_month + "/" + start_day + "/" + start_year + " " + start_hour + ":" + start_min).getTime() / 1000;
+      var start_ts = Date.UTC(start_year, start_month - 1, start_day, start_hour, start_min) / 1000;
       if ($.isNumeric(start_ts)) {
         changeConfiguration("start_ts", start_ts);
         changeConfiguration("next_game", start_ts);
@@ -1209,7 +1232,7 @@ module.exports = {
       var end_day = $('input[type="number"][name="fb--schedule--end_day"]')[0].value;
       var end_hour = $('input[type="number"][name="fb--schedule--end_hour"]')[0].value;
       var end_min = $('input[type="number"][name="fb--schedule--end_min"]')[0].value;
-      var end_ts = new Date(end_month + "/" + end_day + "/" + end_year + " " + end_hour + ":" + end_min).getTime() / 1000;
+      var end_ts = Date.UTC(end_year, end_month - 1, end_day, end_hour, end_min) / 1000;
       if ($.isNumeric(end_ts)) {
         changeConfiguration("end_ts", end_ts);
       }
@@ -1398,6 +1421,17 @@ module.exports = {
       });
     });
 
+    // prompt delete level
+    $('.js-delete-level').on('click', function(event) {
+      event.preventDefault();
+      var level_id = $(this).prev('input').attr('value');
+      Modal.loadPopup('p=action&modal=delete-level', 'action-delete-level', function() {
+        $('#delete_level').click(function() {
+          deleteLevelPopup(level_id);
+        });
+      });
+    });
+    
     // prompt logout
     $('.js-prompt-logout').on('click', function(event) {
       event.preventDefault();
@@ -1430,6 +1464,43 @@ module.exports = {
       Modal.loadPopup('p=action&modal=restore-database', 'action-restore-database', function() {
         $('#restore_database').click(databaseRestore);
       });
+    });
+
+    // custom logo file selector
+    var $customLogoInput = $('#custom-logo-input');
+    var $customLogoImage = $('#custom-logo-image');
+    $('#custom-logo-link').on('click', function() {
+      $customLogoInput.trigger('click');
+    });
+    // on file input change, set image
+    $customLogoInput.change(function() {
+      var input = this;
+      if (input.files && input.files[0]) {
+        if (input.files[0].size > (1000*1024)) {
+          alert('Please upload an image less than 1000KB!');
+          return;
+        }
+
+        var reader = new FileReader();
+
+        reader.onload = function (e) {
+          $customLogoImage.attr('src', e.target.result);
+          var rawImageData = e.target.result;
+          var filetypeBeginIdx = rawImageData.indexOf('/') + 1;
+          var filetypeEndIdx = rawImageData.indexOf(';');
+          var filetype = rawImageData.substring(filetypeBeginIdx, filetypeEndIdx);
+          var base64 = rawImageData.substring(rawImageData.indexOf(',') + 1);
+          var logo_data = {
+            action: 'change_custom_logo',
+            logoType: filetype,
+            logo_b64: base64
+          };
+          sendAdminRequest(logo_data, true);
+        };
+
+        reader.readAsDataURL(input.files[0]);
+
+      }
     });
   }
 };

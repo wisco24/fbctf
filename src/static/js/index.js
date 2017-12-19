@@ -2,15 +2,30 @@ var $ = require('jquery');
 
 function teamNameFormError() {
   $('.el--text')[0].classList.add('form-error');
-  $('.fb-form input[name="teamname"]').on('change', function() {
+  $('.fb-form input[name="team_name"]').on('change', function() {
     $('.el--text')[0].classList.remove('form-error');
   });
 }
 
-function teamPasswordFormError() {
+function teamLoginFormError() {
+  $('.el--text')[0].classList.add('form-error');
   $('.el--text')[1].classList.add('form-error');
+  $('.fb-form input').on('change', function() {
+    $('.el--text')[0].classList.remove('form-error');
+    $('.el--text')[1].classList.remove('form-error');
+  });
+}
+
+function teamPasswordFormError(toosimple) {
+  $('.el--text')[1].classList.add('form-error');
+  if (toosimple) {
+    $('#password_error')[0].classList.remove('completely-hidden');
+  }
   $('.fb-form input[name="password"]').on('change', function() {
     $('.el--text')[1].classList.remove('form-error');
+    if (toosimple) {
+      $('#password_error')[0].classList.add('completely-hidden');
+    }
   });
 }
 
@@ -30,7 +45,7 @@ function teamLogoFormError() {
 
 function verifyTeamName(context) {
   if (context === 'register') {
-    var teamName = String($('.fb-form input[name="teamname"]')[0].value);
+    var teamName = String($('.fb-form input[name="team_name"]')[0].value);
     if (teamName.length === 0) {
       teamNameFormError();
       return false;
@@ -109,10 +124,16 @@ function sendIndexRequest(request_data) {
       goToPage(responseData.redirect);
     } else {
       // TODO: Make this a modal
-      console.log('Failed');
-      teamNameFormError();
-      teamPasswordFormError();
-      teamTokenFormError();
+      if (responseData.message === 'Password too simple') {
+        teamPasswordFormError(true);
+      }
+      if (responseData.message === 'Login failed') {
+        teamLoginFormError();
+      }
+      if (responseData.message === 'Registration failed') {
+        teamNameFormError();
+        teamTokenFormError();
+      }
     }
   });
 }
@@ -130,7 +151,7 @@ module.exports = {
     if (name && password && !logoInfo.error) {
       var register_data = {
         action: 'register_team',
-        teamname: name,
+        team_name: name,
         password: password,
         logo: logoInfo.logo,
         isCustomLogo: logoInfo.isCustom,
@@ -163,7 +184,7 @@ module.exports = {
     if (name && password && !logoInfo.error) {
       var register_data = {
         action: 'register_names',
-        teamname: name,
+        team_name: name,
         password: password,
         logo: logoInfo.logo,
         isCustomLogo: logoInfo.isCustom,
@@ -185,7 +206,7 @@ module.exports = {
       teamParam = 'team_id';
     } else {
       team = $('.fb-form input[name="team_name"]')[0].value;
-      teamParam = 'teamname';
+      teamParam = 'team_name';
     }
     password = verifyTeamPassword();
 

@@ -85,6 +85,12 @@ $translations = array(
     'Password',
   'Choose an Emblem' =>
     'Choose an Emblem',
+  'or upload your own' =>
+    'or upload your own',
+  'Clear your custom emblem to use a default emblem.' =>
+    'Clear your custom emblem to use a default emblem.',
+  'Password is too simple' =>
+    'Password is too simple',
   'Sign Up' =>
     'Sign Up',
   'Register to play Capture The Flag here. Once you have registered, you will be logged in.' =>
@@ -203,6 +209,8 @@ $translations = array(
     'Registration Type',
   'Strong Passwords' =>
     'Strong Passwords',
+  'Password Types' =>
+    'Password Types',
   'Team Selection' =>
     'Team Selection',
   'Game' =>
@@ -219,6 +227,16 @@ $translations = array(
     'Bases Cycle (s)',
   'Default Bonus Dec' =>
     'Default Bonus Dec',
+  'Game Schedule' =>
+    'Game Schedule',
+  'Game Start Year' =>
+    'Game Start Year',
+  'Game End Year' =>
+    'Game End Year',
+  'Day' =>
+    'Day',
+  'Minute' =>
+    'Minute',
   'Timer' =>
     'Timer',
   'Server Time' =>
@@ -229,8 +247,18 @@ $translations = array(
     'Begin Time',
   'Expected End Time' =>
     'Expected End Time',
+  'Internationalization' =>
+    'Internationalization',
   'Language' =>
     'Language',
+  'Branding' =>
+    'Branding',
+  'Custom Logo' =>
+    'Custom Logo',
+  'Logo' =>
+    'Logo',
+  'Custom Text' =>
+    'Custom Text',
   'DELETE' =>
     'DELETE',
   'Delete' =>

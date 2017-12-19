@@ -93,6 +93,20 @@ class Logo extends Model implements Importable, Exportable {
     self::invalidateMCRecords();
   }
 
+  // Set logo as used or unused by passing 1 or 0.
+  public static async function genSetUsed(
+    string $logo_name,
+    bool $used,
+  ): Awaitable<void> {
+    $db = await self::genDb();
+    await $db->queryf(
+      'UPDATE logos SET used = %d WHERE name = %s LIMIT 1',
+      (int) $used,
+      $logo_name,
+    );
+    self::invalidateMCRecords();
+  }
+
   // Retrieve a random logo from the table.
   public static async function genRandomLogo(): Awaitable<string> {
     $all_logos = await self::genAllLogos();
@@ -148,13 +162,22 @@ class Logo extends Model implements Importable, Exportable {
       $all_enabled_logos = array();
       $result =
         await $db->queryf(
-          'SELECT * FROM logos WHERE enabled = 1 AND protected = 0 AND custom = 0',
+          'SELECT * FROM logos WHERE enabled = 1 AND used = 0 AND protected = 0 AND custom = 0',
         );
-
-      foreach ($result->mapRows() as $row) {
-        $all_enabled_logos[] = self::logoFromRow($row);
+      //  If all logos are used, provide all logos with no restriction on unused.
+      if ($result->numRows() === 0) {
+        $all_logos = await self::genAllLogos();
+        $all_enabled_logos = $all_logos->toArray();
+      } else {
+        foreach ($result->mapRows() as $row) {
+          $all_enabled_logos[] = self::logoFromRow($row);
+        }
       }
       self::setMCRecords('ALL_ENABLED_LOGOS', $all_enabled_logos);
+      invariant(
+        is_array($all_enabled_logos),
+        'all_enabled_logos should be an array of Logo',
+      );
       return $all_enabled_logos;
     } else {
       invariant(
@@ -183,7 +206,7 @@ class Logo extends Model implements Importable, Exportable {
   ): Awaitable<bool> {
     foreach ($elements as $logo) {
       $name = must_have_string($logo, 'name');
-      $exist = await self::genCheckExists($name);
+      $exist = await self::genCheckExists($name); // TODO: Combine Awaits
       if (!$exist) {
         await self::genCreate(
           (bool) must_have_idx($logo, 'used'),
@@ -192,7 +215,7 @@ class Logo extends Model implements Importable, Exportable {
           (bool) must_have_idx($logo, 'custom'),
           $name,
           must_have_string($logo, 'logo'),
-        );
+        ); // TODO: Combine Awaits
       }
     }
     return true;
@@ -252,6 +275,7 @@ class Logo extends Model implements Importable, Exportable {
   // Create custom logo
   public static async function genCreateCustom(
     string $base64_data,
+    bool $branding = false,
   ): Awaitable<?Logo> {
     // Check image size
     $image_size_bytes = strlen($base64_data) * self::BASE64_BYTES_PER_CHAR;
@@ -269,6 +293,8 @@ class Logo extends Model implements Importable, Exportable {
     // Get image properties and verify mimetype
     $base64_data = str_replace(' ', '+', $base64_data);
     $binary_data = base64_decode(str_replace(' ', '+', $base64_data));
+    /* HH_IGNORE_ERROR[2049] */
+    /* HH_IGNORE_ERROR[4107] */
     $image_info = getimagesizefromstring($binary_data);
 
     $mimetype = $image_info[2];
@@ -295,8 +321,6 @@ class Logo extends Model implements Importable, Exportable {
       );
     }
 
-    $db = await self::genDb();
-
     $used = true;
     $enabled = true;
     $protected = false;
@@ -309,6 +333,11 @@ class Logo extends Model implements Importable, Exportable {
       $filename,
       $filepath,
     );
+
+    // If created logo is for branding, set configuration value
+    if ($branding) {
+      await Configuration::genUpdate('custom_logo_image', $logo->getLogo());
+    }
 
     // Return newly created logo_id
     return $logo;
