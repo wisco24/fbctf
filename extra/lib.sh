@@ -371,3 +371,4 @@ function update_repo() {
 
   run_grunt "$__ctf_path" "$__mode"
 }
+
